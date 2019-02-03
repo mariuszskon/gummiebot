@@ -15,6 +15,7 @@ class GummieBot:
 
     def login(self, username, password):
         LOGIN_PAGE = 't-login.html'
+        ERROR_STRING = 'notification--error'
 
         response = self.opener.open(self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
         form_parser = GumtreeLoginFormParser()
@@ -41,6 +42,9 @@ class GummieBot:
         response = self.opener.open(self.BASE_URL + LOGIN_PAGE,
                                     urllib.parse.urlencode(data).encode('utf-8')
         )
+
+        if ERROR_STRING in response.read().decode('utf-8'):
+            raise ValueError('Incorrect credentials provided')
 
     def get_ads(self):
         ADS_PAGE = 'm-my-ads.html'
@@ -76,5 +80,5 @@ class GumtreeLoginFormParser(html.parser.HTMLParser):
     def close(self):
         return self.inputs
 
-gb = GummieBot("user", "pass")
+gb = GummieBot("email@example.com", "pass")
 gb.get_ads()
