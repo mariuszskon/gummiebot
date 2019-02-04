@@ -2,6 +2,7 @@
 
 import urllib.request, urllib.parse, http.cookiejar
 import html.parser
+import re
 import sys
 import getpass
 
@@ -14,6 +15,7 @@ class GummieBot:
         cookiejar = http.cookiejar.CookieJar()
         self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookiejar))
         self.login(username, password)
+        self.ads = {}
 
     def login(self, username, password):
         LOGIN_PAGE = 't-login.html'
@@ -51,7 +53,10 @@ class GummieBot:
     def get_ads(self):
         ADS_PAGE = 'm-my-ads.html'
         response = self.opener.open(self.BASE_URL + ADS_PAGE)
-        print(response.read().decode('utf-8'))
+        ad_parser = GumtreeMyAdsParser()
+        ad_parser.feed(response.read().decode('utf-8'))
+        self.ads = ad_parser.close()
+        print(self.ads)
 
 class GumtreeLoginFormParser(html.parser.HTMLParser):
     LOGIN_FORM_ID = 'login-form'
@@ -81,6 +86,44 @@ class GumtreeLoginFormParser(html.parser.HTMLParser):
 
     def close(self):
         return self.inputs
+
+class GumtreeMyAdsParser(html.parser.HTMLParser):
+    DESIRED_TAG_ELEMENT = 'a'
+    DESIRED_TAG_CLASS = 'rs-ad-title'
+    AD_ID_REGEX = re.compile('adId=(\d+)')
+
+    def __init__(self):
+        super().__init__()
+        self.ads = {}
+        self.desired_tag = False
+        self.last_ad_id = -1
+
+    def handle_starttag(self, tag, attrs):
+        self.desired_tag = False
+        if tag == self.DESIRED_TAG_ELEMENT:
+            for attr in attrs:
+                if attr[0] == 'class' and self.DESIRED_TAG_CLASS in attr[1]:
+                    self.desired_tag = True
+
+        if self.desired_tag:
+            for attr in attrs:
+                if attr[0] == 'href':
+                    self.last_ad_id = self.AD_ID_REGEX.search(attr[1]).group(1)
+                    self.ads[self.last_ad_id] = ''
+
+    def handle_data(self, data):
+        # if we are inside a tag with the ad title, get the title
+        if self.desired_tag:
+            self.ads[self.last_ad_id] += data
+
+    def handle_endtag(self, tag):
+        if self.desired_tag:
+            # assume same type of tag is not nested
+            if tag == self.DESIRED_TAG_ELEMENT:
+                self.desired_tag = False
+
+    def close(self):
+        return self.ads
 
 sys.stderr.write('Username: ')
 username = input('')
