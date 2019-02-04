@@ -58,6 +58,22 @@ class GummieBot:
         self.ads = ad_parser.close()
         print(self.ads)
 
+    def delete_ad(self, id):
+        AD_ID_KEY = 'adId'
+        DELETE_PAGE = 'm-delete-ad.html?' # ? for GET request
+        DELETE_PAYLOAD_BASE = {
+            'show': 'ALL',
+            'reason': 'NO_REASON',
+            'autoresponse': 0
+        }
+        data = DELETE_PAYLOAD_BASE
+        data[AD_ID_KEY] = str(id)
+
+        self.opener.open(self.BASE_URL + DELETE_PAGE + # MUST use + to send GET data instead of POST
+                         urllib.parse.urlencode(data)
+        )
+
+
 class GumtreeLoginFormParser(html.parser.HTMLParser):
     LOGIN_FORM_ID = 'login-form'
 
