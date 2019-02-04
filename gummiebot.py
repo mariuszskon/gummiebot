@@ -39,7 +39,7 @@ class GummieBot:
                 elif input_tag['type'] == 'checkbox':
                     data[input_tag['name']] = 'true' # check the box
                 else:
-                    raise ValueError("Unexpected input tag with name '{}'".format(input_tag['name']))
+                    raise ValueError("Unexpected input tag type '{}' (with name '{}')".format(input_tag['type'], input_tag['name']))
 
         response = self.opener.open(self.BASE_URL + LOGIN_PAGE,
                                     urllib.parse.urlencode(data).encode('utf-8')
