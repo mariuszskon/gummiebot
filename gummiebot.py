@@ -2,6 +2,8 @@
 
 import urllib.request, urllib.parse, http.cookiejar
 import html.parser
+import sys
+import getpass
 
 class GummieBot:
     BASE_URL = 'https://www.gumtree.com.au/'
@@ -80,5 +82,9 @@ class GumtreeLoginFormParser(html.parser.HTMLParser):
     def close(self):
         return self.inputs
 
-gb = GummieBot("email@example.com", "pass")
+sys.stderr.write('Username: ')
+username = input('')
+password = getpass.getpass('Password: ', sys.stderr)
+
+gb = GummieBot(username, password)
 gb.get_ads()
