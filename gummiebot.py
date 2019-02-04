@@ -85,7 +85,7 @@ class GumtreeLoginFormParser(html.parser.HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag == 'form':
             for attr in attrs:
-                if attr[0] == 'id' and attr[1] == self.LOGIN_FORM_ID:
+                if attr[0] == 'id' and self.LOGIN_FORM_ID in attr[1]:
                     self.inside_login_form = True
                     break
         if self.inside_login_form and tag == 'input':
