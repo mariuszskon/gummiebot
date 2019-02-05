@@ -6,6 +6,7 @@ import html.parser
 import json
 import re
 import sys, os
+import difflib
 import getpass
 
 class GummieBot:
@@ -91,6 +92,61 @@ class GummieBot:
 
         self.session.get(self.BASE_URL + DELETE_PAGE, params=data)
 
+    def category_name_to_id(self, category_name):
+        if category_name in self.category_map:
+            return self.category_map[category_name]
+        else:
+            for name in self.category_map:
+                if difflib.SequenceMatcher(None, name, category_name).ratio() > 0.5:
+                    raise ValueError("Unknown given category '{}'. Did you mean '{}'?".format(category_name, name))
+            raise ValueError("Unknown given category '{}'".format(category_name))
+
+    def post_ad(self, ad: 'GumtreeListing'):
+        FORM_PAGE = 'p-post-ad2.html'
+        FORM_ID = 'pstad-main-form'
+        SUBMIT_TARGET = 'p-submit-ad.html'
+
+        data_to_get_form = {
+            'title': ad.title,
+            'categoryId': self.category_name_to_id(ad.category),
+            'adType': 'OFFER',
+            'shouldShowSimplifiedSyi': 'false'
+        }
+
+        response = self.session.post(self.BASE_URL + FORM_PAGE, data=data_to_get_form)
+        form_parser = GumtreeFormParser(FORM_ID)
+        form_parser.feed(response.text)
+        inputs = form_parser.close()
+
+        condition_field_name = False
+
+        submission = {
+            # we do need need to set category and title because we already provided it to the form page
+            'description': ad.description,
+            'price.amount': ad.price['amount'],
+            'price.type': ad.price['type']
+        }
+        for input_tag in inputs:
+            if 'name' not in input_tag:
+                continue
+            if input_tag['name'] in submission:
+                # do not override our values
+                pass
+            else:
+                if input_tag.get('type') == 'checkbox':
+                    pass
+                else:
+                    submission[input_tag['name']] = input_tag.get('value', '')
+                    if 'condition' in input_tag['name']:
+                        condition_field_name = input_tag['name']
+        if condition_field_name == False:
+            raise RuntimeError('Could not extract field name for item condition using known method')
+        submission[condition_field_name] = ad.condition
+
+        # TODO: implement image uploading
+
+        response = self.session.post(self.BASE_URL + SUBMIT_TARGET, data=submission)
+        print(response.text)
 
 class GumtreeFormParser(html.parser.HTMLParser):
     def __init__(self, target_id):
@@ -216,8 +272,6 @@ def log(message, end='\n'):
 if len(sys.argv) < 2:
     log('Please enter one or more directories to scan as arguments on the command line')
     sys.exit()
-listing = GummieJsonParser(sys.argv[1])
-log(str(listing.debug()))
 log('Username: ', end='')
 username = input('')
 password = getpass.getpass('Password: ', sys.stderr)
@@ -227,3 +281,7 @@ gb = GummieBot(username, password)
 log(json.dumps(gb.category_map, sort_keys=True, indent=4))
 
 gb.get_ads()
+
+listing = GummieJsonParser(sys.argv[1])
+log(str(listing.debug()))
+gb.post_ad(listing)
