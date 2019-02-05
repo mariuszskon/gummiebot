@@ -10,6 +10,8 @@ import getpass
 
 class GummieBot:
     BASE_URL = 'https://www.gumtree.com.au/'
+    CATEGORIES_PAGE = '' # just use the home page
+    CATEGORIES_REGEX = re.compile(r'Gtau\.Global\.variables\.categories\s+=\s+({.*?})\s*;')
     HTML_NAME_USERNAME = 'loginMail'
     HTML_NAME_PASSWORD = 'password'
 
@@ -18,6 +20,23 @@ class GummieBot:
         self.login(username, password)
         self.ads = {}
         self.category_map = {}
+
+    @property
+    def category_map(self):
+        if len(self._category_map) <= 0:
+            # we need to figure the categories out by getting them from the website
+            response = self.session.get(self.BASE_URL + self.CATEGORIES_PAGE)
+            matches = self.CATEGORIES_REGEX.search(response.text)
+            if matches is None:
+                raise RuntimeError('Could not extract Gumtree ad categories using known method')
+            full_tree = json.loads(matches.group(1))
+            GummieCategoryExtractor(full_tree, self._category_map)
+
+        return self._category_map
+
+    @category_map.setter
+    def category_map(self, new_map):
+        self._category_map = new_map
 
     def login(self, username, password):
         LOGIN_PAGE = 't-login.html'
@@ -181,6 +200,16 @@ def GummieJsonParser(directory):
         listing_data['images'] = raw_data['images']
         return GumtreeListing(**listing_data)
 
+def GummieCategoryExtractor(tree, category_map):
+    # extract only the "leaf" categories (categories with no children)
+    # because only they can be normally selected
+
+    if len(tree["children"]) > 0:
+        for child in tree["children"]:
+            GummieCategoryExtractor(child, category_map)
+    else:
+        category_map[tree["name"]] = tree["id"]
+
 def log(message, end='\n'):
     sys.stderr.write(message + end)
 
@@ -194,4 +223,7 @@ username = input('')
 password = getpass.getpass('Password: ', sys.stderr)
 
 gb = GummieBot(username, password)
+
+log(json.dumps(gb.category_map, sort_keys=True, indent=4))
+
 gb.get_ads()
