@@ -184,13 +184,16 @@ def GummieJsonParser(directory):
         listing_data['images'] = raw_data['images']
         return GumtreeListing(**listing_data)
 
+def log(message, end='\n'):
+    sys.stderr.write(message + end)
+
 if len(sys.argv) < 2:
-    sys.stderr.write('Please enter one or more directories to scan as arguments on the command line\n')
+    log('Please enter one or more directories to scan as arguments on the command line')
     sys.exit()
 listing = GummieJsonParser(sys.argv[1])
-sys.stderr.write(str(listing.debug()) + '\n')
+log(str(listing.debug()))
 sys.exit()
-sys.stderr.write('Username: ')
+log('Username: ', end='')
 username = input('')
 password = getpass.getpass('Password: ', sys.stderr)
 
