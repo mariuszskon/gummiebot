@@ -41,9 +41,10 @@ class GummieBot:
     def login(self, username, password):
         LOGIN_PAGE = 't-login.html'
         ERROR_STRING = 'notification--error'
+        LOGIN_FORM_ID = 'login-form'
 
         response = self.session.get(self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
-        form_parser = GumtreeLoginFormParser()
+        form_parser = GumtreeFormParser(LOGIN_FORM_ID)
         form_parser.feed(response.text)
         inputs = form_parser.close()
 
@@ -91,21 +92,20 @@ class GummieBot:
         self.session.get(self.BASE_URL + DELETE_PAGE, params=data)
 
 
-class GumtreeLoginFormParser(html.parser.HTMLParser):
-    LOGIN_FORM_ID = 'login-form'
-
-    def __init__(self):
+class GumtreeFormParser(html.parser.HTMLParser):
+    def __init__(self, target_id):
         super().__init__()
         self.inputs = []
-        self.inside_login_form = False
+        self.inside_desired_form = False
+        self.target_id = target_id
 
     def handle_starttag(self, tag, attrs):
         if tag == 'form':
             for attr in attrs:
-                if attr[0] == 'id' and self.LOGIN_FORM_ID in attr[1]:
-                    self.inside_login_form = True
+                if attr[0] == 'id' and self.target_id in attr[1]:
+                    self.inside_desired_form = True
                     break
-        if self.inside_login_form and tag == 'input':
+        if self.inside_desired_form and tag == 'input':
             attrdict = {}
             # convert tuples like ('id', 'login-password') to dictionary where attrdict['id'] = 'login-password'
             for attr in attrs:
@@ -115,7 +115,7 @@ class GumtreeLoginFormParser(html.parser.HTMLParser):
 
     def handle_endtag(self, tag):
         if tag == 'form':
-            self.inside_login_form = False
+            self.inside_desired_form = False
 
     def close(self):
         return self.inputs
