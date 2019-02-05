@@ -2,8 +2,9 @@
 
 import urllib.request, urllib.parse, http.cookiejar
 import html.parser
+import json
 import re
-import sys
+import sys, os
 import getpass
 
 class GummieBot:
@@ -141,6 +142,54 @@ class GumtreeMyAdsParser(html.parser.HTMLParser):
     def close(self):
         return self.ads
 
+class GumtreeListing():
+    KNOWN_PRICE_TYPES = ['FIXED', 'NEGOTIABLE', 'GIVE_AWAY', 'SWAP_TRADE']
+    KNOWN_CONDITIONS = ['used', 'new']
+
+    def __init__(self, title, description, price, category, condition, images):
+        self.title = title
+        self.description = description
+        if price['type'] not in self.KNOWN_PRICE_TYPES:
+            raise ValueError("Price type '{}' unknown".format(price['type']))
+        self.price = price
+        self.category = category
+        if condition not in self.KNOWN_CONDITIONS:
+            raise ValueError("Condition '{}' unknown".format(condition))
+        self.condition = condition
+        self.images = images
+
+    def debug(self):
+        return {
+            'title': self.title,
+            'description': self.description,
+            'price': self.price,
+            'category': self.category,
+            'condition': self.condition,
+            'images': self.images
+        }
+
+def GummieJsonParser(directory):
+    GUMMIE_JSON_FILENAME = 'meta.gummie.json'
+
+    # GRRR make singe quotes '
+    with open(os.path.join(directory, GUMMIE_JSON_FILENAME)) as f:
+        raw_data = json.load(f)
+        listing_data = {}
+        listing_data['title'] = raw_data['title']
+        with open(os.path.join(directory, raw_data['description_file'])) as f2:
+            listing_data['description'] = f2.read()
+        listing_data['price'] = raw_data['price']
+        listing_data['category'] = raw_data['category']
+        listing_data['condition'] = raw_data['condition'] if 'condition' in raw_data else 'used'
+        listing_data['images'] = raw_data['images']
+        return GumtreeListing(**listing_data)
+
+if len(sys.argv) < 2:
+    sys.stderr.write('Please enter one or more directories to scan as arguments on the command line\n')
+    sys.exit()
+listing = GummieJsonParser(sys.argv[1])
+sys.stderr.write(str(listing.debug()) + '\n')
+sys.exit()
 sys.stderr.write('Username: ')
 username = input('')
 password = getpass.getpass('Password: ', sys.stderr)
