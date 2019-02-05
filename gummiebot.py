@@ -1,6 +1,7 @@
 # gummiebot: Gumtree Australia automation software
 
-import urllib.request, urllib.parse, http.cookiejar
+import requests
+
 import html.parser
 import json
 import re
@@ -13,18 +14,18 @@ class GummieBot:
     HTML_NAME_PASSWORD = 'password'
 
     def __init__(self, username, password):
-        cookiejar = http.cookiejar.CookieJar()
-        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookiejar))
+        self.session = requests.Session()
         self.login(username, password)
         self.ads = {}
+        self.category_map = {}
 
     def login(self, username, password):
         LOGIN_PAGE = 't-login.html'
         ERROR_STRING = 'notification--error'
 
-        response = self.opener.open(self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
+        response = self.session.get(self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
         form_parser = GumtreeLoginFormParser()
-        form_parser.feed(response.read().decode('utf-8'))
+        form_parser.feed(response.text)
         inputs = form_parser.close()
 
         data = {
@@ -44,24 +45,22 @@ class GummieBot:
                 else:
                     raise ValueError("Unexpected input tag type '{}' (with name '{}')".format(input_tag['type'], input_tag['name']))
 
-        response = self.opener.open(self.BASE_URL + LOGIN_PAGE,
-                                    urllib.parse.urlencode(data).encode('utf-8')
-        )
+        response = self.session.post(self.BASE_URL + LOGIN_PAGE, data=data)
 
-        if ERROR_STRING in response.read().decode('utf-8'):
+        if ERROR_STRING in response.text:
             raise ValueError('Incorrect credentials provided')
 
     def get_ads(self):
         ADS_PAGE = 'm-my-ads.html'
-        response = self.opener.open(self.BASE_URL + ADS_PAGE)
+        response = self.session.get(self.BASE_URL + ADS_PAGE)
         ad_parser = GumtreeMyAdsParser()
-        ad_parser.feed(response.read().decode('utf-8'))
+        ad_parser.feed(response.text)
         self.ads = ad_parser.close()
         print(self.ads)
 
     def delete_ad(self, id):
         AD_ID_KEY = 'adId'
-        DELETE_PAGE = 'm-delete-ad.html?' # ? for GET request
+        DELETE_PAGE = 'm-delete-ad.html'
         DELETE_PAYLOAD_BASE = {
             'show': 'ALL',
             'reason': 'NO_REASON',
@@ -70,9 +69,7 @@ class GummieBot:
         data = DELETE_PAYLOAD_BASE
         data[AD_ID_KEY] = str(id)
 
-        self.opener.open(self.BASE_URL + DELETE_PAGE + # MUST use + to send GET data instead of POST
-                         urllib.parse.urlencode(data)
-        )
+        self.session.get(self.BASE_URL + DELETE_PAGE, params=data)
 
 
 class GumtreeLoginFormParser(html.parser.HTMLParser):
@@ -192,7 +189,6 @@ if len(sys.argv) < 2:
     sys.exit()
 listing = GummieJsonParser(sys.argv[1])
 log(str(listing.debug()))
-sys.exit()
 log('Username: ', end='')
 username = input('')
 password = getpass.getpass('Password: ', sys.stderr)
