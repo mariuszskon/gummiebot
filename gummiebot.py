@@ -103,10 +103,16 @@ class GummieBot:
             raise ValueError("Unknown given category '{}'".format(category_name))
 
     def post_ad(self, ad: 'GumtreeListing'):
+        DELETE_DRAFT_PAGE = 'p-post-ad.html'
         FORM_PAGE = 'p-post-ad2.html'
         FORM_ID = 'pstad-main-form'
+        DRAFT_TARGET = 'p-post-draft-ad.html'
         SUBMIT_TARGET = 'p-submit-ad.html'
 
+        # delete any existing drafts
+        self.session.get(self.BASE_URL + DELETE_DRAFT_PAGE, params={'delDraft': 'true'})
+
+        # we need to pass the first page of the form and go to the main one
         data_to_get_form = {
             'title': ad.title,
             'categoryId': self.category_name_to_id(ad.category),
@@ -145,6 +151,9 @@ class GummieBot:
         submission[condition_field_name] = ad.condition
 
         # TODO: implement image uploading
+
+        # post a draft in case the actual submission fails (to make it easier for human to post)
+        draft_response = self.session.post(self.BASE_URL + DRAFT_TARGET, data=submission)
 
         response = self.session.post(self.BASE_URL + SUBMIT_TARGET, data=submission)
         return response.text
@@ -300,4 +309,4 @@ log(json.dumps(gb.category_map, sort_keys=True, indent=4))
 
 log(gb.get_ads())
 
-#print(gb.post_ad(listing))
+print(gb.post_ad(listing))
