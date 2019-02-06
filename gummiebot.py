@@ -222,9 +222,22 @@ class GumtreeListing():
     def __init__(self, title, description, price, category, condition, images):
         self.title = title
         self.description = description
+
+        if not isinstance(price, dict):
+            raise TypeError("Expected 'price' element to be an object/dictionary")
+        if 'amount' not in price or 'type' not in price:
+            raise ValueError("Expected subkeys 'amount' and 'type' in 'price'")
+        self.price = {}
+        try:
+            self.price['amount'] = float(price['amount'])
+        except ValueError:
+            raise ValueError("'amount' is not a valid decimal number")
+        if self.price['amount'] <= 0:
+            raise ValueError("'amount' must be greater than zero")
         if price['type'] not in self.KNOWN_PRICE_TYPES:
             raise ValueError("Price type '{}' unknown".format(price['type']))
-        self.price = price
+        self.price['type'] = price['type']
+
         self.category = category
         if condition not in self.KNOWN_CONDITIONS:
             raise ValueError("Condition '{}' unknown".format(condition))
@@ -273,6 +286,10 @@ def log(message, end='\n'):
 if len(sys.argv) < 2:
     log('Please enter one or more directories to scan as arguments on the command line')
     sys.exit()
+
+listing = GummieJsonParser(sys.argv[1])
+log(str(listing.debug()))
+
 log('Username: ', end='')
 username = input('')
 password = getpass.getpass('Password: ', sys.stderr)
@@ -283,6 +300,4 @@ log(json.dumps(gb.category_map, sort_keys=True, indent=4))
 
 log(gb.get_ads())
 
-listing = GummieJsonParser(sys.argv[1])
-log(str(listing.debug()))
 #print(gb.post_ad(listing))
