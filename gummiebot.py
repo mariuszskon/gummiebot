@@ -345,8 +345,6 @@ password = getpass.getpass('Password: ', sys.stderr)
 
 gb = GummieBot(username, password)
 
-log(json.dumps(gb.category_map, sort_keys=True, indent=4))
-
 log(gb.get_ads())
 
 log(gb.post_ad(listing))
