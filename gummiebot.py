@@ -243,6 +243,7 @@ class GumtreeListing():
 
 def GummieJsonParser(directory):
     GUMMIE_JSON_FILENAME = 'meta.gummie.json'
+    DEFAULT_CONDITION = 'used'
 
     with open(os.path.join(directory, GUMMIE_JSON_FILENAME)) as f:
         raw_data = json.load(f)
@@ -252,7 +253,7 @@ def GummieJsonParser(directory):
             listing_data['description'] = f2.read()
         listing_data['price'] = raw_data['price']
         listing_data['category'] = raw_data['category']
-        listing_data['condition'] = raw_data['condition'] if 'condition' in raw_data else 'used'
+        listing_data['condition'] = raw_data.get('condition', DEFAULT_CONDITION)
         listing_data['images'] = raw_data['images']
         return GumtreeListing(**listing_data)
 
