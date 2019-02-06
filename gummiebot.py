@@ -116,6 +116,8 @@ class GummieBot:
         DELETE_DRAFT_PAGE = 'p-post-ad.html'
         FORM_PAGE = 'p-post-ad2.html'
         FORM_ID = 'pstad-main-form'
+        UPLOAD_IMAGE_TARGET = 'p-upload-image.html'
+        DESIRED_IMAGE_URL_KEY = 'teaserUrl'
         DRAFT_TARGET = 'p-post-draft-ad.html'
         SUBMIT_TARGET = 'p-submit-ad.html'
 
@@ -162,7 +164,19 @@ class GummieBot:
             raise RuntimeError('Could not extract field name for item condition using known method')
         submission[condition_field_name] = ad.condition
 
-        # TODO: implement image uploading
+        image_links = []
+        log('Uploading images...')
+        for image in ad.images:
+            log("Uploading image '{}'...".format(image))
+            response = self.session.post(self.BASE_URL + UPLOAD_IMAGE_TARGET, data=submission, files={
+                'images': open(image, 'rb')
+            })
+            try:
+                url = response.json()[DESIRED_IMAGE_URL_KEY]
+                image_links.append(url)
+            except:
+                raise RuntimeError("Could not extract uploaded image URL for image '{}'".format(image))
+        submission['images'] = image_links
 
         # post a draft in case the actual submission fails (to make it easier for human to post)
         log('Posting draft...')
@@ -282,10 +296,12 @@ def GummieJsonParser(directory):
     GUMMIE_JSON_FILENAME = 'meta.gummie.json'
     DEFAULT_CONDITION = 'used'
 
-    filename = os.path.join(directory, GUMMIE_JSON_FILENAME)
-    log("Opening '{}'...".format(filename))
-    with open(filename) as f:
-        log("Parsing '{}'...".format(filename))
+    log("Switching to directory '{}'...".format(directory))
+    os.chdir(directory)
+
+    log("Opening '{}'...".format(GUMMIE_JSON_FILENAME))
+    with open(GUMMIE_JSON_FILENAME) as f:
+        log("Parsing '{}'...".format(GUMMIE_JSON_FILENAME))
         raw_data = json.load(f)
         listing_data = {}
         listing_data['title'] = raw_data['title']
@@ -294,7 +310,11 @@ def GummieJsonParser(directory):
         listing_data['price'] = raw_data['price']
         listing_data['category'] = raw_data['category']
         listing_data['condition'] = raw_data.get('condition', DEFAULT_CONDITION)
-        listing_data['images'] = raw_data['images']
+        listing_data['images'] = []
+        for image in raw_data['images']:
+            if not os.path.isfile(image):
+                raise FileNotFoundError("Could not find image '{}'".format(image))
+            listing_data['images'].append(image)
         return GumtreeListing(**listing_data)
 
 def GummieCategoryExtractor(tree, category_map):
