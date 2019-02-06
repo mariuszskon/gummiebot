@@ -87,6 +87,7 @@ class GummieBot:
         return self.ads
 
     def delete_ad(self, id):
+        SUCCESS_STRING = 'notification--success'
         AD_ID_KEY = 'adId'
         DELETE_PAGE = 'm-delete-ad.html'
         DELETE_PAYLOAD_BASE = {
@@ -98,7 +99,8 @@ class GummieBot:
         data[AD_ID_KEY] = str(id)
 
         log("Deleting ad with id '{}'...".format(id))
-        self.session.get(self.BASE_URL + DELETE_PAGE, params=data)
+        response = self.session.get(self.BASE_URL + DELETE_PAGE, params=data)
+        return SUCCESS_STRING in response.text
 
     def category_name_to_id(self, category_name):
         if category_name in self.category_map:
