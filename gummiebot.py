@@ -11,10 +11,6 @@ import getpass
 
 class GummieBot:
     BASE_URL = 'https://www.gumtree.com.au/'
-    CATEGORIES_PAGE = '' # just use the home page
-    CATEGORIES_REGEX = re.compile(r'Gtau\.Global\.variables\.categories\s+=\s+({.*?})\s*;')
-    HTML_NAME_USERNAME = 'loginMail'
-    HTML_NAME_PASSWORD = 'password'
 
     def __init__(self, username, password):
         self.session = requests.Session()
@@ -24,10 +20,13 @@ class GummieBot:
 
     @property
     def category_map(self):
+        CATEGORIES_PAGE = '' # just use the home page
+        CATEGORIES_REGEX = re.compile(r'Gtau\.Global\.variables\.categories\s+=\s+({.*?})\s*;')
+
         if len(self._category_map) <= 0:
             # we need to figure the categories out by getting them from the website
-            response = self.session.get(self.BASE_URL + self.CATEGORIES_PAGE)
-            matches = self.CATEGORIES_REGEX.search(response.text)
+            response = self.session.get(self.BASE_URL + CATEGORIES_PAGE)
+            matches = CATEGORIES_REGEX.search(response.text)
             if matches is None:
                 raise RuntimeError('Could not extract Gumtree ad categories using known method')
             full_tree = json.loads(matches.group(1))
@@ -43,6 +42,8 @@ class GummieBot:
         LOGIN_PAGE = 't-login.html'
         ERROR_STRING = 'notification--error'
         LOGIN_FORM_ID = 'login-form'
+        HTML_NAME_USERNAME = 'loginMail'
+        HTML_NAME_PASSWORD = 'password'
 
         response = self.session.get(self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
         form_parser = GumtreeFormParser(LOGIN_FORM_ID)
@@ -50,8 +51,8 @@ class GummieBot:
         inputs = form_parser.close()
 
         data = {
-            self.HTML_NAME_USERNAME: username,
-            self.HTML_NAME_PASSWORD: password
+            HTML_NAME_USERNAME: username,
+            HTML_NAME_PASSWORD: password
         }
         for input_tag in inputs:
             if input_tag['name'] in data:
