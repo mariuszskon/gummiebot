@@ -112,6 +112,7 @@ class GummieBot:
             raise ValueError("Unknown given category '{}'".format(category_name))
 
     def post_ad(self, ad: 'GumtreeListing'):
+        SUCCESS_STRING = 'notification--success'
         DELETE_DRAFT_PAGE = 'p-post-ad.html'
         FORM_PAGE = 'p-post-ad2.html'
         FORM_ID = 'pstad-main-form'
@@ -169,7 +170,8 @@ class GummieBot:
 
         log('Posting final listing...')
         response = self.session.post(self.BASE_URL + SUBMIT_TARGET, data=submission)
-        return response.text
+
+        return SUCCESS_STRING in response.text
 
 class GumtreeFormParser(html.parser.HTMLParser):
     def __init__(self, target_id):
@@ -325,4 +327,4 @@ log(json.dumps(gb.category_map, sort_keys=True, indent=4))
 
 log(gb.get_ads())
 
-print(gb.post_ad(listing))
+log(gb.post_ad(listing))
