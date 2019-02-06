@@ -251,6 +251,8 @@ class GumtreeMyAdsParser(html.parser.HTMLParser):
                 self.desired_tag = False
 
     def close(self):
+        name_to_id_map = {value: key for key, value in self.ads.items()}
+        self.ads = name_to_id_map
         return self.ads
 
 class GumtreeListing():
