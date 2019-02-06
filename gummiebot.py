@@ -243,7 +243,6 @@ class GumtreeListing():
 def GummieJsonParser(directory):
     GUMMIE_JSON_FILENAME = 'meta.gummie.json'
 
-    # GRRR make singe quotes '
     with open(os.path.join(directory, GUMMIE_JSON_FILENAME)) as f:
         raw_data = json.load(f)
         listing_data = {}
