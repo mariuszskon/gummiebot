@@ -307,7 +307,7 @@ def GummieJsonParser(directory):
         raw_data = json.load(f)
         listing_data = {}
         listing_data['title'] = raw_data['title']
-        with open(os.path.join(directory, raw_data['description_file'])) as f2:
+        with open(raw_data['description_file']) as f2:
             listing_data['description'] = f2.read()
         listing_data['price'] = raw_data['price']
         listing_data['category'] = raw_data['category']
@@ -332,19 +332,46 @@ def GummieCategoryExtractor(tree, category_map):
 def log(message, end='\n'):
     sys.stderr.write(str(message) + str(end))
 
-if len(sys.argv) < 2:
-    log('Please enter one or more directories to scan as arguments on the command line')
-    sys.exit()
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        log('usage: gummiebot COMMAND DIRECTORY...')
+        log('       COMMAND is one of post, delete or repost')
+        sys.exit()
 
-listing = GummieJsonParser(sys.argv[1])
-log(str(listing.debug()))
+    def post(gb, listing):
+        return gb.post_ad(listing)
 
-log('Username: ', end='')
-username = input('')
-password = getpass.getpass('Password: ', sys.stderr)
+    def delete(gb, listing):
+        ads = gb.get_ads()
+        if listing.title in ads:
+            return gb.delete_ad(ads[listing.title])
+        else:
+            raise ValueError("Ad titled '{}' not found".format(listing.title))
 
-gb = GummieBot(username, password)
+    def repost(gb, listing):
+        return delete(gb, listing) and post(gb, listing)
 
-log(gb.get_ads())
+    command = sys.argv[1]
+    str2func = {
+        'post': post,
+        'delete': delete,
+        'repost': repost
+    }
+    if command in str2func:
+        func = str2func[command]
 
-log(gb.post_ad(listing))
+        log('Username: ', end='')
+        username = input('')
+        password = getpass.getpass('Password: ', sys.stderr)
+        gb = GummieBot(username, password)
+
+        owd = os.getcwd()
+
+        for directory in sys.argv[2:]:
+            os.chdir(owd)
+            listing = GummieJsonParser(directory)
+            result = func(gb, listing)
+            log("Result for listing '{}': {}".format(listing.title, result))
+
+    else:
+        raise ValueError("Unknown command '{}'".format(command))
