@@ -77,7 +77,7 @@ class GummieBot:
         ad_parser = GumtreeMyAdsParser()
         ad_parser.feed(response.text)
         self.ads = ad_parser.close()
-        print(self.ads)
+        return self.ads
 
     def delete_ad(self, id):
         AD_ID_KEY = 'adId'
@@ -146,7 +146,7 @@ class GummieBot:
         # TODO: implement image uploading
 
         response = self.session.post(self.BASE_URL + SUBMIT_TARGET, data=submission)
-        print(response.text)
+        return response.text
 
 class GumtreeFormParser(html.parser.HTMLParser):
     def __init__(self, target_id):
@@ -267,7 +267,7 @@ def GummieCategoryExtractor(tree, category_map):
         category_map[tree["name"]] = tree["id"]
 
 def log(message, end='\n'):
-    sys.stderr.write(message + end)
+    sys.stderr.write(str(message) + str(end))
 
 if len(sys.argv) < 2:
     log('Please enter one or more directories to scan as arguments on the command line')
@@ -280,8 +280,8 @@ gb = GummieBot(username, password)
 
 log(json.dumps(gb.category_map, sort_keys=True, indent=4))
 
-gb.get_ads()
+log(gb.get_ads())
 
 listing = GummieJsonParser(sys.argv[1])
 log(str(listing.debug()))
-gb.post_ad(listing)
+#print(gb.post_ad(listing))
