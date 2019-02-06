@@ -24,6 +24,7 @@ class GummieBot:
         CATEGORIES_REGEX = re.compile(r'Gtau\.Global\.variables\.categories\s+=\s+({.*?})\s*;')
 
         if len(self._category_map) <= 0:
+            log('Fetching categories...')
             # we need to figure the categories out by getting them from the website
             response = self.session.get(self.BASE_URL + CATEGORIES_PAGE)
             matches = CATEGORIES_REGEX.search(response.text)
@@ -45,6 +46,7 @@ class GummieBot:
         HTML_NAME_USERNAME = 'loginMail'
         HTML_NAME_PASSWORD = 'password'
 
+        log('Getting login form...')
         response = self.session.get(self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
         form_parser = GumtreeFormParser(LOGIN_FORM_ID)
         form_parser.feed(response.text)
@@ -67,13 +69,17 @@ class GummieBot:
                 else:
                     raise ValueError("Unexpected input tag type '{}' (with name '{}')".format(input_tag['type'], input_tag['name']))
 
+        log('Logging in...')
         response = self.session.post(self.BASE_URL + LOGIN_PAGE, data=data)
 
         if ERROR_STRING in response.text:
             raise ValueError('Incorrect credentials provided')
 
+        log('Logged in')
+
     def get_ads(self):
         ADS_PAGE = 'm-my-ads.html'
+        log('Getting ads...')
         response = self.session.get(self.BASE_URL + ADS_PAGE)
         ad_parser = GumtreeMyAdsParser()
         ad_parser.feed(response.text)
@@ -91,6 +97,7 @@ class GummieBot:
         data = DELETE_PAYLOAD_BASE
         data[AD_ID_KEY] = str(id)
 
+        log("Deleting ad with id '{}'...".format(id))
         self.session.get(self.BASE_URL + DELETE_PAGE, params=data)
 
     def category_name_to_id(self, category_name):
@@ -110,6 +117,7 @@ class GummieBot:
         SUBMIT_TARGET = 'p-submit-ad.html'
 
         # delete any existing drafts
+        log('Deleting drafts...')
         self.session.get(self.BASE_URL + DELETE_DRAFT_PAGE, params={'delDraft': 'true'})
 
         # we need to pass the first page of the form and go to the main one
@@ -120,6 +128,7 @@ class GummieBot:
             'shouldShowSimplifiedSyi': 'false'
         }
 
+        log('Getting ad post form...')
         response = self.session.post(self.BASE_URL + FORM_PAGE, data=data_to_get_form)
         form_parser = GumtreeFormParser(FORM_ID)
         form_parser.feed(response.text)
@@ -153,8 +162,10 @@ class GummieBot:
         # TODO: implement image uploading
 
         # post a draft in case the actual submission fails (to make it easier for human to post)
+        log('Posting draft...')
         draft_response = self.session.post(self.BASE_URL + DRAFT_TARGET, data=submission)
 
+        log('Posting final listing...')
         response = self.session.post(self.BASE_URL + SUBMIT_TARGET, data=submission)
         return response.text
 
@@ -267,7 +278,10 @@ def GummieJsonParser(directory):
     GUMMIE_JSON_FILENAME = 'meta.gummie.json'
     DEFAULT_CONDITION = 'used'
 
-    with open(os.path.join(directory, GUMMIE_JSON_FILENAME)) as f:
+    filename = os.path.join(directory, GUMMIE_JSON_FILENAME)
+    log("Opening '{}'...".format(filename))
+    with open(filename) as f:
+        log("Parsing '{}'...".format(filename))
         raw_data = json.load(f)
         listing_data = {}
         listing_data['title'] = raw_data['title']
