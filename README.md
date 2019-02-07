@@ -54,7 +54,7 @@ An object containing the properties `amount` and `type`.
 
 ##### `amount`
 
-A type which can be converted to a float easily. Must be greater than zero.
+The asking price, in Australian dollars, provided via a type which can be converted to a float (decimal) easily. Must be greater than zero.
 
 ##### `type`
 
