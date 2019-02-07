@@ -46,7 +46,7 @@ class GummieBot:
             if matches is None:
                 raise RuntimeError('Could not extract Gumtree ad categories using known method')
             full_tree = json.loads(matches.group(1))
-            GummieCategoryExtractor(full_tree, self._category_map)
+            gummie_category_extract(full_tree, self._category_map)
 
         return self._category_map
 
@@ -334,13 +334,13 @@ def gummie_json_parse(directory):
             listing_data['images'].append(image)
         return GumtreeListing(**listing_data)
 
-def GummieCategoryExtractor(tree, category_map):
+def gummie_category_extract(tree, category_map):
     # extract only the "leaf" categories (categories with no children)
     # because only they can be normally selected
 
     if len(tree["children"]) > 0:
         for child in tree["children"]:
-            GummieCategoryExtractor(child, category_map)
+            gummie_category_extract(child, category_map)
     else:
         category_map[tree["name"]] = tree["id"]
 
