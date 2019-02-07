@@ -82,7 +82,7 @@ A string, one of `used` or `new`. Defaults to `used`.
 
 Undocumented functions/methods/classes are intended for internal use only.
 
-### `gummie_json_parse(directory)`
+### `gummie_json_parse(directory: str) -> GumtreeListing`
 
 Changes to directory `directory` and reads the `meta.gummie.json` file inside. Returns an instance of `GumtreeListing` which contains validated data that can be used later with `GummieBot`.
 
@@ -102,10 +102,10 @@ Provides a higher-level interface to reading a value using a key from `category_
 
 Returns a dict of the logged in user's ads, with a mapping from the title to the ad's ID.
 
-#### `.delete_ad(id)`
+#### `.delete_ad(id) -> bool`
 
 Delete an ad by its ID. The ad ID can be acquired by first using `.get_ads()`. Returns boolean indicating success or failure.
 
-#### `.post_ad(ad: GumtreeListing)`
+#### `.post_ad(ad: GumtreeListing) -> bool`
 
 Posts an instance of `GumtreeListing` to Gumtree. Returns boolean indicating success or failure.

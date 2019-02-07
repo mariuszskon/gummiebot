@@ -101,7 +101,7 @@ class GummieBot:
         self.ads = ad_parser.close()
         return self.ads
 
-    def delete_ad(self, id):
+    def delete_ad(self, id) -> bool:
         SUCCESS_STRING = 'notification--success'
         AD_ID_KEY = 'adId'
         DELETE_PAGE = 'm-delete-ad.html'
@@ -126,7 +126,7 @@ class GummieBot:
                     raise ValueError("Unknown given category '{}'. Did you mean '{}'?".format(category_name, name))
             raise ValueError("Unknown given category '{}'".format(category_name))
 
-    def post_ad(self, ad: 'GumtreeListing'):
+    def post_ad(self, ad: 'GumtreeListing') -> bool:
         SUCCESS_STRING = 'notification--success'
         DELETE_DRAFT_PAGE = 'p-post-ad.html'
         FORM_PAGE = 'p-post-ad2.html'
@@ -309,7 +309,7 @@ class GumtreeListing():
             'images': self.images
         }
 
-def gummie_json_parse(directory):
+def gummie_json_parse(directory: str) -> GumtreeListing:
     GUMMIE_JSON_FILENAME = 'meta.gummie.json'
     DEFAULT_CONDITION = 'used'
 
