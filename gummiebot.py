@@ -343,10 +343,12 @@ def dict_key_else_log_similar(dict_, key, log_noun='key'):
         return dict_[key]
     else:
         # suggest a key named something similar, if appropriate
-        for k in dict_:
-            if difflib.SequenceMatcher(None, k, key).ratio() > 0.5:
-                    raise ValueError("Unknown given {} '{}'. Did you mean '{}'?".format(log_noun, key, k))
-        raise ValueError("Unknown given {} '{}'".format(log_noun, k))
+        similar_list = difflib.get_close_matches(key, dict_.keys(), 1)
+
+        if len(similar_list) > 0:
+            raise ValueError("Unknown given {} '{}'. Did you mean '{}'?".format(log_noun, key, similar_list[0]))
+        else:
+            raise ValueError("Unknown given {} '{}'".format(log_noun, key))
 
 def log(message, end='\n'):
     sys.stderr.write(str(message) + str(end))
