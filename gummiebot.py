@@ -364,10 +364,7 @@ if __name__ == '__main__':
 
     def delete(gb, listing):
         ads = gb.get_ads()
-        if listing.title in ads:
-            return gb.delete_ad(ads[listing.title])
-        else:
-            raise ValueError("Ad titled '{}' not found".format(listing.title))
+        return gb.delete_ad(dict_key_else_log_similar(ads, listing.title, 'ad titled'))
 
     def repost(gb, listing):
         return delete(gb, listing) and post(gb, listing)
