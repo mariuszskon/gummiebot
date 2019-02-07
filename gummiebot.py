@@ -309,7 +309,7 @@ class GumtreeListing():
             'images': self.images
         }
 
-def GummieJsonParser(directory):
+def gummie_json_parse(directory):
     GUMMIE_JSON_FILENAME = 'meta.gummie.json'
     DEFAULT_CONDITION = 'used'
 
@@ -384,7 +384,7 @@ if __name__ == '__main__':
 
         for directory in sys.argv[2:]:
             os.chdir(owd)
-            listing = GummieJsonParser(directory)
+            listing = gummie_json_parse(directory)
             result = func(gb, listing)
             log("Result for listing '{}': {}".format(listing.title, result))
 
