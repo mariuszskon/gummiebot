@@ -118,13 +118,7 @@ class GummieBot:
         return SUCCESS_STRING in response.text
 
     def category_name_to_id(self, category_name):
-        if category_name in self.category_map:
-            return self.category_map[category_name]
-        else:
-            for name in self.category_map:
-                if difflib.SequenceMatcher(None, name, category_name).ratio() > 0.5:
-                    raise ValueError("Unknown given category '{}'. Did you mean '{}'?".format(category_name, name))
-            raise ValueError("Unknown given category '{}'".format(category_name))
+        return dict_key_else_log_similar(self.category_map, category_name, 'category')
 
     def post_ad(self, ad: 'GumtreeListing') -> bool:
         SUCCESS_STRING = 'notification--success'
@@ -343,6 +337,16 @@ def gummie_category_extract(tree, category_map):
             gummie_category_extract(child, category_map)
     else:
         category_map[tree["name"]] = tree["id"]
+
+def dict_key_else_log_similar(dict_, key, log_noun='key'):
+    if key in dict_:
+        return dict_[key]
+    else:
+        # suggest a key named something similar, if appropriate
+        for k in dict_:
+            if difflib.SequenceMatcher(None, k, key).ratio() > 0.5:
+                    raise ValueError("Unknown given {} '{}'. Did you mean '{}'?".format(log_noun, key, k))
+        raise ValueError("Unknown given {} '{}'".format(log_noun, k))
 
 def log(message, end='\n'):
     sys.stderr.write(str(message) + str(end))
