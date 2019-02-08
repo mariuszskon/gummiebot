@@ -94,13 +94,13 @@ Big class for interacting with Gumtree Australia, but not without logging in fir
 
 A dict of "leaf" categories (ones which ads can be submitted to), with mappings to their corresponding IDs. This is lazy loaded from the website.
 
+#### `.ads`
+
+Returns a dict of the logged in user's ads, with a mapping from the title to the ad's ID. This is lazy loaded from the website.
+
 #### `.category_name_to_id(category_name)`
 
 Provides a higher-level interface to reading a value using a key from `category_map` by logging if the key could not be found, and suggesting similar keys.
-
-#### `.get_ads()`
-
-Returns a dict of the logged in user's ads, with a mapping from the title to the ad's ID.
 
 #### `.delete_ad(id) -> bool`
 
