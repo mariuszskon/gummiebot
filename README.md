@@ -102,9 +102,13 @@ Returns a dict of the logged in user's ads, with a mapping from the title to the
 
 Provides a higher-level interface to reading a value using a key from `category_map` by logging if the key could not be found, and suggesting similar keys.
 
-#### `.delete_ad(id) -> bool`
+#### `.delete_ad_by_name(name) -> bool`
 
-Delete an ad by its ID. The ad ID can be acquired by first using `.get_ads()`. Returns boolean indicating success or failure.
+Delete an ad by its name/title. Returns boolean indicating success or failure.
+
+#### `.delete_ad_by_id(id) -> bool`
+
+Delete an ad by its ID. The ad ID can be acquired by first reading `.ads`. Returns boolean indicating success or failure. You might want to use `.detele_ad_by_name(name)` instead.
 
 #### `.post_ad(ad: GumtreeListing) -> bool`
 
