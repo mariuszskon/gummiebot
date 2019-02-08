@@ -112,7 +112,7 @@ class GummieBot:
 
         log('Logged in')
 
-    def delete_ad(self, id) -> bool:
+    def delete_ad_by_id(self, id) -> bool:
         SUCCESS_STRING = 'notification--success'
         AD_ID_KEY = 'adId'
         DELETE_PAGE = 'm-delete-ad.html'
@@ -130,6 +130,9 @@ class GummieBot:
 
     def category_name_to_id(self, category_name):
         return dict_key_else_log_similar(self.category_map, category_name, 'category')
+
+    def delete_ad_by_name(self, name) -> bool:
+        return self.delete_ad_by_id(dict_key_else_log_similar(self.ads, name, 'ad titled'))
 
     def post_ad(self, ad: 'GumtreeListing') -> bool:
         SUCCESS_STRING = 'notification--success'
@@ -374,7 +377,7 @@ if __name__ == '__main__':
         return gb.post_ad(listing)
 
     def delete(gb, listing):
-        return gb.delete_ad(dict_key_else_log_similar(gb.ads, listing.title, 'ad titled'))
+        return gb.delete_ad_by_name(listing.title)
 
     def repost(gb, listing):
         return delete(gb, listing) and post(gb, listing)
