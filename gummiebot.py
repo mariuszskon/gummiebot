@@ -30,7 +30,7 @@ class GummieBot:
     def __init__(self, username, password):
         self.session = requests.Session()
         self.login(username, password)
-        self.ads = {}
+        self.ads = None
         self.category_map = None
 
     @property
@@ -55,6 +55,24 @@ class GummieBot:
     def category_map(self, value):
         # setter = resetter
         self._category_map = None
+
+    @property
+    def ads(self):
+        ADS_PAGE = 'm-my-ads.html'
+
+        if self._ads is None:
+            log('Getting ads...')
+            response = self.session.get(self.BASE_URL + ADS_PAGE)
+            ad_parser = GumtreeMyAdsParser()
+            ad_parser.feed(response.text)
+            self._ads = ad_parser.close()
+
+        return self._ads
+
+    @ads.setter
+    def ads(self, value):
+        # setter = resetter
+        self._ads = None
 
     def login(self, username, password):
         LOGIN_PAGE = 't-login.html'
@@ -93,15 +111,6 @@ class GummieBot:
             raise ValueError('Incorrect credentials provided')
 
         log('Logged in')
-
-    def get_ads(self):
-        ADS_PAGE = 'm-my-ads.html'
-        log('Getting ads...')
-        response = self.session.get(self.BASE_URL + ADS_PAGE)
-        ad_parser = GumtreeMyAdsParser()
-        ad_parser.feed(response.text)
-        self.ads = ad_parser.close()
-        return self.ads
 
     def delete_ad(self, id) -> bool:
         SUCCESS_STRING = 'notification--success'
@@ -365,8 +374,7 @@ if __name__ == '__main__':
         return gb.post_ad(listing)
 
     def delete(gb, listing):
-        ads = gb.get_ads()
-        return gb.delete_ad(dict_key_else_log_similar(ads, listing.title, 'ad titled'))
+        return gb.delete_ad(dict_key_else_log_similar(gb.ads, listing.title, 'ad titled'))
 
     def repost(gb, listing):
         return delete(gb, listing) and post(gb, listing)
