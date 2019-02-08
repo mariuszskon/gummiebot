@@ -31,14 +31,15 @@ class GummieBot:
         self.session = requests.Session()
         self.login(username, password)
         self.ads = {}
-        self.category_map = {}
+        self.category_map = None
 
     @property
     def category_map(self):
         CATEGORIES_PAGE = '' # just use the home page
         CATEGORIES_REGEX = re.compile(r'Gtau\.Global\.variables\.categories\s+=\s+({.*?})\s*;')
 
-        if len(self._category_map) <= 0:
+        if self._category_map is None:
+            self._category_map = {}
             log('Fetching categories...')
             # we need to figure the categories out by getting them from the website
             response = self.session.get(self.BASE_URL + CATEGORIES_PAGE)
@@ -51,8 +52,9 @@ class GummieBot:
         return self._category_map
 
     @category_map.setter
-    def category_map(self, new_map):
-        self._category_map = new_map
+    def category_map(self, value):
+        # setter = resetter
+        self._category_map = None
 
     def login(self, username, password):
         LOGIN_PAGE = 't-login.html'
