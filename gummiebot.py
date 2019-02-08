@@ -28,7 +28,7 @@ class GummieBot:
     BASE_URL = 'https://www.gumtree.com.au/'
 
     def __init__(self, username, password):
-        self.session = requests.Session()
+        self.session = GummieSession()
         self.login(username, password)
         self.ads = None
         self.category_map = None
@@ -40,9 +40,8 @@ class GummieBot:
 
         if self._category_map is None:
             self._category_map = {}
-            log('Fetching categories...')
             # we need to figure the categories out by getting them from the website
-            response = self.session.get(self.BASE_URL + CATEGORIES_PAGE)
+            response = self.session.get('categories', self.BASE_URL + CATEGORIES_PAGE)
             matches = CATEGORIES_REGEX.search(response.text)
             if matches is None:
                 raise RuntimeError('Could not extract Gumtree ad categories using known method')
@@ -61,8 +60,7 @@ class GummieBot:
         ADS_PAGE = 'm-my-ads.html'
 
         if self._ads is None:
-            log('Getting ads...')
-            response = self.session.get(self.BASE_URL + ADS_PAGE)
+            response = self.session.get('ads', self.BASE_URL + ADS_PAGE)
             ad_parser = GumtreeMyAdsParser()
             ad_parser.feed(response.text)
             self._ads = ad_parser.close()
@@ -81,8 +79,7 @@ class GummieBot:
         HTML_NAME_USERNAME = 'loginMail'
         HTML_NAME_PASSWORD = 'password'
 
-        log('Getting login form...')
-        response = self.session.get(self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
+        response = self.session.get('login form', self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
         form_parser = GumtreeFormParser(LOGIN_FORM_ID)
         form_parser.feed(response.text)
         inputs = form_parser.close()
@@ -104,8 +101,7 @@ class GummieBot:
                 else:
                     raise ValueError("Unexpected input tag type '{}' (with name '{}')".format(input_tag['type'], input_tag['name']))
 
-        log('Logging in...')
-        response = self.session.post(self.BASE_URL + LOGIN_PAGE, data=data)
+        response = self.session.post('login details', self.BASE_URL + LOGIN_PAGE, data=data)
 
         if ERROR_STRING in response.text:
             raise ValueError('Incorrect credentials provided')
@@ -124,8 +120,7 @@ class GummieBot:
         data = DELETE_PAYLOAD_BASE
         data[AD_ID_KEY] = str(id)
 
-        log("Deleting ad with id '{}'...".format(id))
-        response = self.session.get(self.BASE_URL + DELETE_PAGE, params=data)
+        response = self.session.get("delete request for ad with id '{}'".format(id), self.BASE_URL + DELETE_PAGE, params=data)
         return SUCCESS_STRING in response.text
 
     def category_name_to_id(self, category_name):
@@ -145,8 +140,7 @@ class GummieBot:
         SUBMIT_TARGET = 'p-submit-ad.html'
 
         # delete any existing drafts
-        log('Deleting drafts...')
-        self.session.get(self.BASE_URL + DELETE_DRAFT_PAGE, params={'delDraft': 'true'})
+        self.session.get('delete request for drafts', self.BASE_URL + DELETE_DRAFT_PAGE, params={'delDraft': 'true'})
 
         # we need to pass the first page of the form and go to the main one
         data_to_get_form = {
@@ -156,8 +150,7 @@ class GummieBot:
             'shouldShowSimplifiedSyi': 'false'
         }
 
-        log('Getting ad post form...')
-        response = self.session.post(self.BASE_URL + FORM_PAGE, data=data_to_get_form)
+        response = self.session.post('ad post form', self.BASE_URL + FORM_PAGE, data=data_to_get_form)
         form_parser = GumtreeFormParser(FORM_ID)
         form_parser.feed(response.text)
         inputs = form_parser.close()
@@ -190,8 +183,7 @@ class GummieBot:
         image_links = []
         log('Uploading images...')
         for image in ad.images:
-            log("Uploading image '{}'...".format(image))
-            response = self.session.post(self.BASE_URL + UPLOAD_IMAGE_TARGET, data=submission, files={
+            response = self.session.post("image '{}'".format(image), self.BASE_URL + UPLOAD_IMAGE_TARGET, data=submission, files={
                 'images': open(image, 'rb')
             })
             try:
@@ -202,13 +194,29 @@ class GummieBot:
         submission['images'] = image_links
 
         # post a draft in case the actual submission fails (to make it easier for human to post)
-        log('Posting draft...')
-        draft_response = self.session.post(self.BASE_URL + DRAFT_TARGET, data=submission)
+        draft_response = self.session.post('draft', self.BASE_URL + DRAFT_TARGET, data=submission)
 
-        log('Posting final listing...')
-        response = self.session.post(self.BASE_URL + SUBMIT_TARGET, data=submission)
+        response = self.session.post('final listing', self.BASE_URL + SUBMIT_TARGET, data=submission)
 
         return SUCCESS_STRING in response.text
+
+class GummieSession():
+    def __init__(self):
+        self._session = requests.Session()
+
+    def _safe_return_request(self, r: requests.Response) -> requests.Response:
+        r.raise_for_status()
+        return r
+
+    def get(self, name, *args, **kwargs):
+        log('Getting {}...'.format(name))
+        r = self._session.get(*args, **kwargs)
+        return self._safe_return_request(r)
+
+    def post(self, name, *args, **kwargs):
+        log('Posting {}...'.format(name))
+        r = self._session.post(*args, **kwargs)
+        return self._safe_return_request(r)
 
 class GumtreeFormParser(html.parser.HTMLParser):
     def __init__(self, target_id):
