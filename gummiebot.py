@@ -22,6 +22,8 @@ import json
 import re
 import sys, os
 import difflib
+import random
+import time
 import getpass
 
 class GummieBot:
@@ -200,19 +202,31 @@ class GummieBot:
 
         return SUCCESS_STRING in response.text
 
+def wait(func):
+    MIN_WAIT = 1
+    MAX_WAIT = 3
+    def wrapper(*args, **kwargs):
+        if args[0].wait:
+            time.sleep(random.randint(MIN_WAIT, MAX_WAIT))
+        return func(*args, **kwargs)
+    return wrapper
+
 class GummieSession():
-    def __init__(self):
+    def __init__(self, wait=True):
         self._session = requests.Session()
+        self.wait = wait
 
     def _safe_return_request(self, r: requests.Response) -> requests.Response:
         r.raise_for_status()
         return r
 
+    @wait
     def get(self, name, *args, **kwargs):
         log('Getting {}...'.format(name))
         r = self._session.get(*args, **kwargs)
         return self._safe_return_request(r)
 
+    @wait
     def post(self, name, *args, **kwargs):
         log('Posting {}...'.format(name))
         r = self._session.post(*args, **kwargs)
