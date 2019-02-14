@@ -13,7 +13,16 @@ Get your ads, post new ads, and delete them automatically.
 ## Command line usage
 
     usage: gummiebot COMMAND DIRECTORY...
-           COMMAND is one of post, delete or repost
+           Automation script for Gumtree Australia
+           Execute COMMAND on one or more DIRECTORY sequentially
+
+    COMMANDS
+        post        Uploads ad
+        delete      Deletes ad by name
+        refresh     Finds and deletes ad, and then posts it,
+                    failing if ad did not exist previously
+        repost      Finds and deletes ad, if it exists,
+                    and then posts ad
 
 More than one directory can be provided. These will be processed one-by-one in order, but will only require logging in once.
 

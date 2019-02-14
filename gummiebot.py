@@ -392,7 +392,16 @@ def log(message, end='\n'):
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         log('usage: gummiebot COMMAND DIRECTORY...')
-        log('       COMMAND is one of post, delete or repost')
+        log('       Automation script for Gumtree Australia')
+        log('       Execute COMMAND on one or more DIRECTORY sequentially')
+        log('')
+        log('COMMANDS')
+        log('    post        Uploads ad')
+        log('    delete      Deletes ad by name')
+        log('    refresh     Finds and deletes ad, and then posts it,')
+        log('                failing if ad did not exist previously')
+        log('    repost      Finds and deletes ad, if it exists,')
+        log('                and then posts ad')
         sys.exit()
 
     def post(gb, listing):
@@ -401,13 +410,23 @@ if __name__ == '__main__':
     def delete(gb, listing):
         return gb.delete_ad_by_name(listing.title)
 
-    def repost(gb, listing):
+    def refresh(gb, listing):
         return delete(gb, listing) and post(gb, listing)
+
+    def repost(gb, listing):
+        try:
+            delete(gb, listing)
+        except ValueError as warning:
+            log('Attempt at deleting resulted in the following warning:')
+            log('    ' + str(warning))
+
+        return post(gb, listing)
 
     command = sys.argv[1]
     str2func = {
         'post': post,
         'delete': delete,
+        'refresh': refresh,
         'repost': repost
     }
     if command in str2func:
