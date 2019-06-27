@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # gummiebot: Gumtree Australia automation software
 
 # Copyright (C) 2019  Mariusz Skoneczko
