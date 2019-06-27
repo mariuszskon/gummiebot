@@ -22,11 +22,13 @@ import requests
 import html.parser
 import json
 import re
-import sys, os
+import sys
+import os
 import difflib
 import random
 import time
 import getpass
+
 
 class GummieBot:
     BASE_URL = 'https://www.gumtree.com.au/'
@@ -39,16 +41,20 @@ class GummieBot:
 
     @property
     def category_map(self):
-        CATEGORIES_PAGE = '' # just use the home page
-        CATEGORIES_REGEX = re.compile(r'Gtau\.Global\.variables\.categories\s+=\s+({.*?})\s*;')
+        CATEGORIES_PAGE = ''  # just use the home page
+        CATEGORIES_REGEX = re.compile(
+            r'Gtau\.Global\.variables\.categories\s+=\s+({.*?})\s*;')
 
         if self._category_map is None:
             self._category_map = {}
-            # we need to figure the categories out by getting them from the website
-            response = self.session.get('categories', self.BASE_URL + CATEGORIES_PAGE)
+            # we need to figure the categories out by getting them
+            # from the website
+            response = self.session.get('categories',
+                                        self.BASE_URL + CATEGORIES_PAGE)
             matches = CATEGORIES_REGEX.search(response.text)
             if matches is None:
-                raise RuntimeError('Could not extract Gumtree ad categories using known method')
+                raise RuntimeError('Could not extract Gumtree ad categories'
+                                   ' using known method')
             full_tree = json.loads(matches.group(1))
             gummie_category_extract(full_tree, self._category_map)
 
@@ -83,7 +89,8 @@ class GummieBot:
         HTML_NAME_USERNAME = 'loginMail'
         HTML_NAME_PASSWORD = 'password'
 
-        response = self.session.get('login form', self.BASE_URL + LOGIN_PAGE) # read page once to get nice cookies
+        # read page once to get nice cookies
+        response = self.session.get('login form', self.BASE_URL + LOGIN_PAGE)
         form_parser = GumtreeFormParser(LOGIN_FORM_ID)
         form_parser.feed(response.text)
         inputs = form_parser.close()
@@ -94,18 +101,22 @@ class GummieBot:
         }
         for input_tag in inputs:
             if input_tag['name'] in data:
-                # we already have data to handle this (e.g. username + password)
+                # we already have data to handle this (e.g. user + pass)
                 pass
             else:
                 # blindly copy hidden inputs (e.g. CSRF token)
                 if input_tag['type'] == 'hidden':
                     data[input_tag['name']] = input_tag['value']
                 elif input_tag['type'] == 'checkbox':
-                    data[input_tag['name']] = 'true' # check the box
+                    data[input_tag['name']] = 'true'  # check the box
                 else:
-                    raise ValueError("Unexpected input tag type '{}' (with name '{}')".format(input_tag['type'], input_tag['name']))
+                    raise ValueError(
+                        "Unexpected input tag type '{}' (with name '{}')"
+                        .format(input_tag['type'], input_tag['name']))
 
-        response = self.session.post('login details', self.BASE_URL + LOGIN_PAGE, data=data)
+        response = self.session.post('login details',
+                                     self.BASE_URL + LOGIN_PAGE,
+                                     data=data)
 
         if ERROR_STRING in response.text:
             raise ValueError('Incorrect credentials provided')
@@ -124,14 +135,21 @@ class GummieBot:
         data = DELETE_PAYLOAD_BASE
         data[AD_ID_KEY] = str(id)
 
-        response = self.session.get("delete request for ad with id '{}'".format(id), self.BASE_URL + DELETE_PAGE, params=data)
+        response = self.session.get("delete request for ad with id '{}'"
+                                    .format(id),
+                                    self.BASE_URL + DELETE_PAGE,
+                                    params=data)
         return SUCCESS_STRING in response.text
 
     def category_name_to_id(self, category_name):
-        return dict_key_else_log_similar(self.category_map, category_name, 'category')
+        return dict_key_else_log_similar(self.category_map,
+                                         category_name,
+                                         'category')
 
     def delete_ad_by_name(self, name) -> bool:
-        return self.delete_ad_by_id(dict_key_else_log_similar(self.ads, name, 'ad titled'))
+        return self.delete_ad_by_id(dict_key_else_log_similar(self.ads,
+                                                              name,
+                                                              'ad titled'))
 
     def post_ad(self, ad: 'GumtreeListing') -> bool:
         SUCCESS_STRING = 'notification--success'
@@ -144,7 +162,9 @@ class GummieBot:
         SUBMIT_TARGET = 'p-submit-ad.html'
 
         # delete any existing drafts
-        self.session.get('delete request for drafts', self.BASE_URL + DELETE_DRAFT_PAGE, params={'delDraft': 'true'})
+        self.session.get('delete request for drafts',
+                         self.BASE_URL + DELETE_DRAFT_PAGE,
+                         params={'delDraft': 'true'})
 
         # we need to pass the first page of the form and go to the main one
         data_to_get_form = {
@@ -154,7 +174,9 @@ class GummieBot:
             'shouldShowSimplifiedSyi': 'false'
         }
 
-        response = self.session.post('ad post form', self.BASE_URL + FORM_PAGE, data=data_to_get_form)
+        response = self.session.post('ad post form',
+                                     self.BASE_URL + FORM_PAGE,
+                                     data=data_to_get_form)
         form_parser = GumtreeFormParser(FORM_ID)
         form_parser.feed(response.text)
         inputs = form_parser.close()
@@ -162,7 +184,8 @@ class GummieBot:
         condition_field_name = False
 
         submission = {
-            # we do need need to set category and title because we already provided it to the form page
+            # we do need need to set category and title
+            # because we already provided it to the form page
             'description': ad.description,
             'price.amount': ad.price['amount'],
             'price.type': ad.price['type']
@@ -180,38 +203,51 @@ class GummieBot:
                     submission[input_tag['name']] = input_tag.get('value', '')
                     if 'condition' in input_tag['name']:
                         condition_field_name = input_tag['name']
-        if condition_field_name == False:
-            raise RuntimeError('Could not extract field name for item condition using known method')
+        if condition_field_name is False:
+            raise RuntimeError('Could not extract field name'
+                               ' for item condition using known method')
         submission[condition_field_name] = ad.condition
 
         image_links = []
         log('Uploading images...')
         for image in ad.images:
-            response = self.session.post("image '{}'".format(image), self.BASE_URL + UPLOAD_IMAGE_TARGET, data=submission, files={
-                'images': open(image, 'rb')
-            })
+            response = self.session.post("image '{}'".format(image),
+                                         self.BASE_URL + UPLOAD_IMAGE_TARGET,
+                                         data=submission, files={
+                                             'images': open(image, 'rb')
+                                         })
             try:
                 url = response.json()[DESIRED_IMAGE_URL_KEY]
                 image_links.append(url)
-            except:
-                raise RuntimeError("Could not extract uploaded image URL for image '{}'".format(image))
+            except Exception:
+                raise RuntimeError(
+                    "Could not extract uploaded image URL for image '{}'"
+                    .format(image))
         submission['images'] = image_links
 
-        # post a draft in case the actual submission fails (to make it easier for human to post)
-        draft_response = self.session.post('draft', self.BASE_URL + DRAFT_TARGET, data=submission)
+        # post a draft in case the actual submission fails
+        # to make it easier for human to post
+        self.session.post('draft',
+                          self.BASE_URL + DRAFT_TARGET,
+                          data=submission)
 
-        response = self.session.post('final listing', self.BASE_URL + SUBMIT_TARGET, data=submission)
+        response = self.session.post('final listing',
+                                     self.BASE_URL + SUBMIT_TARGET,
+                                     data=submission)
 
         return SUCCESS_STRING in response.text
+
 
 def wait(func):
     MIN_WAIT = 1
     MAX_WAIT = 3
+
     def wrapper(*args, **kwargs):
         if args[0].wait:
             time.sleep(random.randint(MIN_WAIT, MAX_WAIT))
         return func(*args, **kwargs)
     return wrapper
+
 
 class GummieSession():
     def __init__(self, wait=True):
@@ -234,6 +270,7 @@ class GummieSession():
         r = self._session.post(*args, **kwargs)
         return self._safe_return_request(r)
 
+
 class GumtreeFormParser(html.parser.HTMLParser):
     def __init__(self, target_id):
         super().__init__()
@@ -249,11 +286,11 @@ class GumtreeFormParser(html.parser.HTMLParser):
                     break
         if self.inside_desired_form and tag == 'input':
             attrdict = {}
-            # convert tuples like ('id', 'login-password') to dictionary where attrdict['id'] = 'login-password'
+            # convert tuples like ('id', 'login-password') to dictionary
+            # where attrdict['id'] = 'login-password'
             for attr in attrs:
                 attrdict[attr[0]] = attr[1]
             self.inputs.append(attrdict)
-
 
     def handle_endtag(self, tag):
         if tag == 'form':
@@ -262,10 +299,11 @@ class GumtreeFormParser(html.parser.HTMLParser):
     def close(self):
         return self.inputs
 
+
 class GumtreeMyAdsParser(html.parser.HTMLParser):
     DESIRED_TAG_ELEMENT = 'a'
     DESIRED_TAG_CLASS = 'rs-ad-title'
-    AD_ID_REGEX = re.compile('adId=(\d+)')
+    AD_ID_REGEX = re.compile(r'adId=(\d+)')
 
     def __init__(self):
         super().__init__()
@@ -302,6 +340,7 @@ class GumtreeMyAdsParser(html.parser.HTMLParser):
         self.ads = name_to_id_map
         return self.ads
 
+
 class GumtreeListing():
     KNOWN_PRICE_TYPES = ['FIXED', 'NEGOTIABLE', 'GIVE_AWAY', 'SWAP_TRADE']
     KNOWN_CONDITIONS = ['used', 'new']
@@ -311,7 +350,8 @@ class GumtreeListing():
         self.description = description
 
         if not isinstance(price, dict):
-            raise TypeError("Expected 'price' element to be an object/dictionary")
+            raise TypeError("Expected 'price' element"
+                            " to be an object/dictionary")
         if 'amount' not in price or 'type' not in price:
             raise ValueError("Expected subkeys 'amount' and 'type' in 'price'")
         self.price = {}
@@ -341,6 +381,7 @@ class GumtreeListing():
             'images': self.images
         }
 
+
 def gummie_json_parse(directory: str) -> GumtreeListing:
     GUMMIE_JSON_FILENAME = 'meta.gummie.json'
     DEFAULT_CONDITION = 'used'
@@ -358,13 +399,16 @@ def gummie_json_parse(directory: str) -> GumtreeListing:
             listing_data['description'] = f2.read()
         listing_data['price'] = raw_data['price']
         listing_data['category'] = raw_data['category']
-        listing_data['condition'] = raw_data.get('condition', DEFAULT_CONDITION)
+        listing_data['condition'] = raw_data.get('condition',
+                                                 DEFAULT_CONDITION)
         listing_data['images'] = []
         for image in raw_data['images']:
             if not os.path.isfile(image):
-                raise FileNotFoundError("Could not find image '{}'".format(image))
+                raise FileNotFoundError("Could not find image '{}'"
+                                        .format(image))
             listing_data['images'].append(image)
         return GumtreeListing(**listing_data)
+
 
 def gummie_category_extract(tree, category_map):
     # extract only the "leaf" categories (categories with no children)
@@ -376,6 +420,7 @@ def gummie_category_extract(tree, category_map):
     else:
         category_map[tree["name"]] = tree["id"]
 
+
 def dict_key_else_log_similar(dict_, key, log_noun='key'):
     if key in dict_:
         return dict_[key]
@@ -384,12 +429,15 @@ def dict_key_else_log_similar(dict_, key, log_noun='key'):
         similar_list = difflib.get_close_matches(key, dict_.keys(), 1)
 
         if len(similar_list) > 0:
-            raise ValueError("Unknown given {} '{}'. Did you mean '{}'?".format(log_noun, key, similar_list[0]))
+            raise ValueError("Unknown given {} '{}'. Did you mean '{}'?"
+                             .format(log_noun, key, similar_list[0]))
         else:
             raise ValueError("Unknown given {} '{}'".format(log_noun, key))
 
+
 def log(message, end='\n'):
     sys.stderr.write(str(message) + str(end))
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
